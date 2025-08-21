@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# REKA•POC — Next.js App Router (Cyberpunk)
 
-## Getting Started
+A POC replicating key flows from a multimodal AI platform: **Vision**, **Research**, **Chat**, **Speech**, and **Spaces**, plus a **Dashboard**. Dark cyberpunk UI.
 
-First, run the development server:
+## Quickstart
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm create next-app reka-poc --ts --eslint --tailwind --app --src-dir=false --import-alias "@/*"
+# Replace generated files with repo content
+pnpm i
+cp .env.example .env.local # fill keys
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment
+- `OPENAI_API_KEY` or `OPENROUTER_API_KEY` (either works; both supported)
+- `EXA_API_KEY` for research
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Modules
+- **Dashboard**: fake KPIs & charts via Recharts.
+- **Vision**: image upload → OpenAI/OpenRouter vision chat completions.
+- **Research**: EXA AI `/search` endpoint → list of results.
+- **Chat**: streaming chat via server route proxy with OpenAI/OpenRouter.
+- **Speech**: Web Speech API (client-side) + server endpoints for TTS/STT (optional).
+- **Spaces**: localStorage-based workspace manager with export.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Notes
+- This is POC-level; please harden auth, rate-limits, error handling for production.
+- You can theme further via `tailwind.config.ts` and `styles/globals.css`.
+- Swap models by editing `lib/providers.ts` or per-module UI controls.
