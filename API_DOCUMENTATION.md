@@ -10,11 +10,9 @@ Before using the API, ensure you have the following environment variables config
 - `OPENAI_API_KEY` or `OPENROUTER_API_KEY` (at least one required)
 - `EXA_API_KEY` (for enhanced search capabilities)
 
-### Optional API Keys
-- `AZURE_SPEECH_KEY` & `AZURE_SPEECH_REGION` (for advanced speech features)
-- `GOOGLE_TRANSLATE_API_KEY` (for translation services)
-- `PINECONE_API_KEY` & `PINECONE_ENVIRONMENT` (for vector search)
-- `ANTHROPIC_API_KEY` (for Claude models)
+### Optional Configuration
+- `OPENAI_TTS_MODEL` (default: tts-1)
+- `OPENAI_STT_MODEL` (default: whisper-1)
 
 ## API Endpoints
 

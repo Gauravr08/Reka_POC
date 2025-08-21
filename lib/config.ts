@@ -3,16 +3,16 @@
 export const apiConfig = {
   // File upload limits
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '50') * 1024 * 1024, // 50MB default
-    allowedAudioFormats: (process.env.ALLOWED_AUDIO_FORMATS || 'mp3,wav,m4a,ogg,flac').split(','),
-    allowedImageFormats: (process.env.ALLOWED_IMAGE_FORMATS || 'jpg,jpeg,png,gif,webp').split(','),
-    allowedDocumentFormats: (process.env.ALLOWED_DOCUMENT_FORMATS || 'pdf,txt,md,docx').split(','),
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+    allowedAudioFormats: ['mp3', 'wav', 'm4a', 'ogg', 'flac'],
+    allowedImageFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    allowedDocumentFormats: ['pdf', 'txt', 'md', 'docx'],
   },
 
   // Rate limiting
   rateLimit: {
     windowMs: 60 * 1000, // 1 minute
-    maxRequests: parseInt(process.env.RATE_LIMIT_RPM || '60'),
+    maxRequests: 60,
   },
 
   // Model configurations
@@ -34,7 +34,6 @@ export const apiConfig = {
   // TTS Voice options
   voices: {
     openai: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
-    azure: ['en-US-AriaNeural', 'en-US-JennyNeural', 'en-US-GuyNeural'],
   },
 
   // Language codes for translation
@@ -60,7 +59,6 @@ export const apiConfig = {
     focused: 'Targeted analysis based on specific queries',
     technical: 'Technical details like metadata, composition, quality',
     creative: 'Creative and artistic analysis',
-    accessibility: 'Accessibility and descriptive analysis',
   },
 
   // Research types
@@ -69,7 +67,6 @@ export const apiConfig = {
     summary: 'Summarized overview of key points',
     comparison: 'Comparative analysis between sources',
     synthesis: 'Synthesized information from multiple sources',
-    validation: 'Fact-checking and validation of information',
   },
 
   // Search types
@@ -78,7 +75,6 @@ export const apiConfig = {
     keyword: 'Traditional keyword-based search',
     visual: 'Visual and image-based search',
     academic: 'Academic and research-focused search',
-    news: 'News and current events search',
   },
 
   // Error messages
@@ -90,14 +86,6 @@ export const apiConfig = {
     invalidRequest: 'Invalid request format or parameters',
     serviceUnavailable: 'Service temporarily unavailable',
     processingError: 'Error processing your request',
-  },
-
-  // Feature flags
-  features: {
-    enableRateLimit: process.env.NODE_ENV === 'production',
-    enableAnalytics: process.env.NODE_ENV === 'production',
-    enableCaching: process.env.NODE_ENV === 'production',
-    enableDebugLogs: process.env.NODE_ENV === 'development',
   },
 
   // Timeouts (in milliseconds)

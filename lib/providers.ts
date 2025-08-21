@@ -24,27 +24,6 @@ export const exa = {
   key: process.env.EXA_API_KEY,
 };
 
-export const azure = {
-  speechKey: process.env.AZURE_SPEECH_KEY,
-  speechRegion: process.env.AZURE_SPEECH_REGION,
-  baseUrl: `https://${process.env.AZURE_SPEECH_REGION}.tts.speech.microsoft.com`,
-};
-
-export const google = {
-  translateKey: process.env.GOOGLE_TRANSLATE_API_KEY,
-  translateBaseUrl: 'https://translation.googleapis.com/language/translate/v2',
-};
-
-export const pinecone = {
-  apiKey: process.env.PINECONE_API_KEY,
-  environment: process.env.PINECONE_ENVIRONMENT,
-};
-
-export const anthropic = {
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  baseUrl: 'https://api.anthropic.com/v1',
-};
-
 export function assertServerKeys() {
   if (!openAI.key && !openRouter.key) {
     throw new Error('Provide OPENAI_API_KEY or OPENROUTER_API_KEY');
