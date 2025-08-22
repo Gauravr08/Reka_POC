@@ -63,22 +63,73 @@ export default function CodeAnalysis() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
+    const currentCode = codeInput;
     setInputMessage('');
     setCodeInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
+    try {
+      const response = await fetch('/api/chat/code-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: currentMessage || 'Please analyze this code',
+          code: currentCode.trim() || null,
+          language: selectedLanguage,
+          messages: messages.map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.content + (msg.code ? `\n\nCode:\n\`\`\`${msg.code.language.toLowerCase()}\n${msg.code.content}\n\`\`\`` : '')
+          }))
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let aiContent = '';
+      
+      const aiMessage: Message = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: userMessage.code 
-          ? generateCodeAnalysis(userMessage.code)
-          : `I'd be happy to help analyze your code! Please paste your code snippet and let me know what specific aspects you'd like me to review - such as:\n\n• Code optimization\n• Bug detection\n• Best practices\n• Performance improvements\n• Documentation\n• Refactoring suggestions`
+        content: ''
       };
-      setMessages(prev => [...prev, aiResponse]);
+      
+      setMessages(prev => [...prev, aiMessage]);
+
+      if (reader) {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          aiContent += chunk;
+          
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === aiMessage.id 
+                ? { ...msg, content: aiContent }
+                : msg
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content: 'I apologize, but I encountered an error while analyzing your code. Please try again.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const generateCodeAnalysis = (code: {language: string, content: string}) => {

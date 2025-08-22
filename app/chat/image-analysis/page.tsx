@@ -38,22 +38,73 @@ export default function ImageAnalysis() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentMessage = inputMessage;
+    const currentImage = uploadedImage;
     setInputMessage('');
     setUploadedImage(null);
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
+    try {
+      if (currentImage) {
+        // Convert data URL to blob
+        const response = await fetch(currentImage);
+        const blob = await response.blob();
+        
+        const formData = new FormData();
+        formData.append('image', blob, 'image.jpg');
+        formData.append('message', currentMessage || 'Analyze this image in detail');
+
+        const apiResponse = await fetch('/api/chat/image-analysis', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!apiResponse.ok) {
+          throw new Error(`Error: ${apiResponse.status} ${apiResponse.statusText}`);
+        }
+
+        const data = await apiResponse.json();
+        
+        const aiResponse: Message = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: data.analysis
+        };
+        setMessages(prev => [...prev, aiResponse]);
+      } else {
+        // Text-only message
+        const apiResponse = await fetch('/api/chat/image-analysis', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: currentMessage }),
+        });
+
+        if (!apiResponse.ok) {
+          throw new Error(`Error: ${apiResponse.status} ${apiResponse.statusText}`);
+        }
+
+        const data = await apiResponse.json();
+        
+        const aiResponse: Message = {
+          id: Date.now() + 1,
+          type: 'assistant',
+          content: data.analysis || data.response
+        };
+        setMessages(prev => [...prev, aiResponse]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      const errorMessage: Message = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: uploadedImage 
-          ? `I can see the uploaded image. This appears to be ${generateImageAnalysis()}. The image shows detailed visual elements including colors, objects, composition, and context. Would you like me to analyze any specific aspects of this image in more detail?`
-          : `I'd be happy to help analyze images! Please upload an image and I'll provide detailed analysis including object detection, scene understanding, text recognition, and contextual insights.`
+        content: 'I apologize, but I encountered an error while analyzing the content. Please try again.'
       };
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const generateImageAnalysis = () => {

@@ -2,6 +2,20 @@
 import { useState } from 'react';
 import { Search, Globe, ExternalLink, CheckCircle } from 'lucide-react';
 
+interface Source {
+  title: string;
+  url: string;
+  type: string;
+}
+
+interface SearchResult {
+  id: number;
+  title: string;
+  summary: string;
+  sources: Source[];
+  confidence: number;
+}
+
 const suggestedPrompts = [
   'Market Prospecting',
   'Entity Discovery', 
@@ -35,31 +49,48 @@ const demoSearches = [
 export default function WebSearch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
+    setSearchResults([]);
     
-    // Simulate search process
-    setTimeout(() => {
-      const mockResults = [
-        {
-          id: 1,
-          title: 'Comprehensive Analysis: ' + searchQuery,
-          summary: 'Based on analysis of multiple sources, here are the key findings regarding your research query...',
-          sources: [
-            { title: 'Source 1: Academic Research', url: 'https://example.com/1', type: 'academic' },
-            { title: 'Source 2: Industry Report', url: 'https://example.com/2', type: 'report' },
-            { title: 'Source 3: News Article', url: 'https://example.com/3', type: 'news' }
-          ],
-          confidence: 95
-        }
-      ];
-      setSearchResults(mockResults);
+    try {
+      const response = await fetch('/api/research/web-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      setSearchResults([{
+        id: 1,
+        title: `Research Analysis: ${searchQuery}`,
+        summary: data.summary,
+        sources: data.sources || [],
+        confidence: 95
+      }]);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([{
+        id: 1,
+        title: 'Search Error',
+        summary: 'Sorry, there was an error performing the web search. Please try again.',
+        sources: [],
+        confidence: 0
+      }]);
+    } finally {
       setIsSearching(false);
-    }, 3000);
+    }
   };
 
   return (

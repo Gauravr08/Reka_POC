@@ -39,22 +39,52 @@ export default function Transcription() {
     }, 5000);
   };
 
-  const processAudio = () => {
+  const processAudio = async () => {
+    if (!audioFile) return;
+    
     setIsProcessing(true);
     
-    // Simulate transcription processing
-    setTimeout(() => {
-      const sampleTranscripts = [
-        "Hello, this is a sample voicemail. I'm calling to discuss the project details and would like to schedule a meeting for next week. Please let me know your availability.",
-        "The weather forecast for tomorrow shows partly cloudy skies with a high of 75 degrees. There's a slight chance of rain in the evening, so you might want to bring an umbrella.",
-        "Thank you for your recent purchase. Your order has been processed and will be shipped within 2-3 business days. You will receive a tracking number via email.",
-        "This is a test of the emergency broadcast system. This is only a test. In case of an actual emergency, you would be instructed where to tune for information."
-      ];
-      
-      const randomTranscript = sampleTranscripts[Math.floor(Math.random() * sampleTranscripts.length)];
-      setTranscript(randomTranscript);
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioFile);
+      formData.append('language', selectedLanguage);
+
+      const response = await fetch('/api/speech/transcription', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setTranscript(data.transcript);
+    } catch (error) {
+      console.error('Transcription error:', error);
+      setTranscript('Sorry, there was an error processing the audio. Please try again.');
+    } finally {
       setIsProcessing(false);
-    }, 3000);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(transcript);
+      // Could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const downloadTranscript = () => {
+    const element = document.createElement('a');
+    const file = new Blob([transcript], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'transcript.txt';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   const loadSampleFile = () => {
@@ -203,10 +233,16 @@ export default function Transcription() {
                 </div>
                 
                 <div className="flex gap-3">
-                  <button className="flex-1 py-2 bg-surface border border-zinc-600 text-zinc-300 rounded-lg hover:border-zinc-500 transition-colors">
+                  <button 
+                    onClick={copyToClipboard}
+                    className="flex-1 py-2 bg-surface border border-zinc-600 text-zinc-300 rounded-lg hover:border-zinc-500 transition-colors"
+                  >
                     Copy Text
                   </button>
-                  <button className="flex-1 py-2 bg-surface border border-zinc-600 text-zinc-300 rounded-lg hover:border-zinc-500 transition-colors">
+                  <button 
+                    onClick={downloadTranscript}
+                    className="flex-1 py-2 bg-surface border border-zinc-600 text-zinc-300 rounded-lg hover:border-zinc-500 transition-colors"
+                  >
                     Download
                   </button>
                 </div>

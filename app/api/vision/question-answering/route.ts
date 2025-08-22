@@ -5,10 +5,73 @@ export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, imageUrl, context = '' } = await req.json();
+    let question = '';
+    let imageUrl = '';
+    let context = '';
+
+    // Handle both FormData (file uploads) and JSON requests
+    const contentType = req.headers.get('content-type') || '';
     
-    if (!question || !imageUrl) {
-      return new Response('Question and image URL are required', { status: 400 });
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload
+      const formData = await req.formData();
+      question = formData.get('question') as string || '';
+      context = formData.get('context') as string || '';
+      
+      const file = formData.get('file') as File;
+      if (file) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          return new Response('File size too large. Maximum size is 10MB.', { status: 400 });
+        }
+        
+        // Convert file to base64 using FileReader approach for better compatibility
+        try {
+          const bytes = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(bytes);
+          
+          // Use a more efficient base64 conversion
+          let binary = '';
+          for (let i = 0; i < uint8Array.byteLength; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+          }
+          const base64 = btoa(binary);
+          
+          imageUrl = `data:${file.type};base64,${base64}`;
+        } catch (conversionError) {
+          console.error('File conversion error:', conversionError);
+          return new Response('Failed to process the uploaded file.', { status: 400 });
+        }
+      }
+    } else {
+      // Handle JSON request
+      try {
+        const body = await req.json();
+        question = body.question || '';
+        imageUrl = body.imageUrl || '';
+        context = body.context || '';
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return new Response('Invalid JSON in request body', { status: 400 });
+      }
+    }
+    
+    if (!question) {
+      return new Response('Question is required', { status: 400 });
+    }
+
+    // If no image provided, return a text-only response
+    if (!imageUrl) {
+      return new Response(JSON.stringify({
+        answer: "I'd be happy to help answer questions about images! Please upload an image file and ask your question about it. I can analyze visual content, identify objects, read text, understand scenes, and provide detailed insights about what I see.",
+        metadata: {
+          question,
+          hasImage: false,
+          timestamp: new Date().toISOString()
+        }
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const provider = defaultProvider === 'openrouter' ? openRouter : openAI;

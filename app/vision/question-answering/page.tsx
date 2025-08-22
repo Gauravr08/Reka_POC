@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { Send } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Send, Upload, X, FileText } from 'lucide-react';
 
 const suggestedPrompts = [
   'What is the main topic of this video?',
@@ -15,25 +15,79 @@ export default function QuestionAnswering() {
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<Array<{id: number, type: 'user' | 'assistant', content: string}>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please select a valid image or video file');
+        return;
+      }
+      setSelectedFile(file);
+      setError(null);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSendQuestion = async () => {
     if (!question.trim()) return;
+    if (!selectedFile) {
+      setError('Please select an image or video file first');
+      return;
+    }
     
     const userMessage = { id: Date.now(), type: 'user' as const, content: question };
     setMessages(prev => [...prev, userMessage]);
+    const currentQuestion = question;
     setQuestion('');
     setIsLoading(true);
+    setError(null);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('question', currentQuestion);
+
+      const response = await fetch('/api/vision/question-answering', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
       const aiResponse = {
         id: Date.now() + 1,
         type: 'assistant' as const,
-        content: `Based on the video content analysis, here's what I found regarding your question: "${userMessage.content}"\n\nThis is a simulated response. In a real implementation, this would connect to your AI model to analyze the video content and provide accurate answers based on the visual and audio information extracted from the selected video.`
+        content: data.answer
       };
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error:', error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant' as const,
+        content: `I apologize, but I encountered an error while analyzing your ${selectedFile.type.startsWith('video') ? 'video' : 'image'}. Please try again or check if the file format is supported.`
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      setError('Failed to analyze the file. Please try again.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -48,23 +102,56 @@ export default function QuestionAnswering() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Question Answering</h1>
         <p className="text-zinc-400">
-          Ask questions about your video content and get AI-powered answers.
+          Ask questions about your image or video content and get AI-powered answers.
         </p>
       </div>
 
-      {/* Video Selection Section */}
+      {/* File Upload Section */}
       <div className="mb-6 p-4 bg-surface/50 border border-zinc-700 rounded-lg">
-        <h3 className="text-sm font-medium text-zinc-300 mb-2">Selected Video:</h3>
-        <div className="flex items-center gap-3">
-          <div className="w-20 h-12 bg-zinc-800 rounded flex items-center justify-center">
-            <div className="text-zinc-500 text-xl">▶</div>
+        <h3 className="text-sm font-medium text-zinc-300 mb-3">Upload Image or Video:</h3>
+        
+        {!selectedFile ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-zinc-600 rounded-lg p-8 text-center cursor-pointer hover:border-accent transition-colors"
+          >
+            <Upload size={40} className="mx-auto mb-4 text-zinc-500" />
+            <p className="text-zinc-400 mb-2">Click to upload an image or video</p>
+            <p className="text-xs text-zinc-500">Supports: JPG, PNG, WebP, MP4, WebM, MOV</p>
           </div>
-          <div>
-            <p className="text-sm text-white">No video selected</p>
-            <p className="text-xs text-zinc-500">Please select a video from Archive Search to begin asking questions</p>
+        ) : (
+          <div className="flex items-center gap-3 p-3 bg-zinc-800 rounded-lg">
+            <FileText size={24} className="text-accent" />
+            <div className="flex-1">
+              <p className="text-sm text-white">{selectedFile.name}</p>
+              <p className="text-xs text-zinc-500">
+                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+              </p>
+            </div>
+            <button
+              onClick={removeFile}
+              className="p-1 text-zinc-400 hover:text-red-400 transition-colors"
+            >
+              <X size={20} />
+            </button>
           </div>
-        </div>
+        )}
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
 
       {/* Suggested Questions */}
       {messages.length === 0 && (

@@ -5,11 +5,73 @@ export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, imageUrl, searchType = 'visual', filters = {} } = await req.json();
+    let query = '';
+    let imageUrl = '';
+    let searchType = 'visual';
+    let filters = {};
+
+    // Handle both FormData (file uploads) and JSON requests
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload
+      const formData = await req.formData();
+      query = formData.get('query') as string || '';
+      searchType = formData.get('searchType') as string || 'visual';
+      
+      const file = formData.get('file') as File;
+      if (file) {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/mov'];
+        if (!validTypes.includes(file.type)) {
+          return new Response('Invalid file type. Please upload an image (JPEG, PNG, WebP) or video (MP4, WebM, MOV).', { status: 400 });
+        }
+        
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          return new Response('File size too large. Maximum size is 10MB.', { status: 400 });
+        }
+        
+        console.log(`Processing file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        
+        // Convert file to base64 using FileReader approach for better compatibility
+        try {
+          const bytes = await file.arrayBuffer();
+          const uint8Array = new Uint8Array(bytes);
+          
+          // Use a more efficient base64 conversion
+          let binary = '';
+          for (let i = 0; i < uint8Array.byteLength; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+          }
+          const base64 = btoa(binary);
+          
+          imageUrl = `data:${file.type};base64,${base64}`;
+          console.log(`Successfully converted file to base64, length: ${base64.length}`);
+        } catch (conversionError) {
+          console.error('File conversion error:', conversionError);
+          return new Response('Failed to process the uploaded file.', { status: 400 });
+        }
+      }
+    } else {
+      // Handle JSON request
+      try {
+        const body = await req.json();
+        query = body.query || '';
+        imageUrl = body.imageUrl || '';
+        searchType = body.searchType || 'visual';
+        filters = body.filters || {};
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return new Response('Invalid JSON in request body', { status: 400 });
+      }
+    }
     
     if (!query && !imageUrl) {
-      return new Response('Query or image URL is required', { status: 400 });
+      return new Response('Either a search query or an image file is required', { status: 400 });
     }
+
+    console.log(`Archive search request - Query: "${query}", Has image: ${!!imageUrl}, Search type: ${searchType}`);
 
     const provider = defaultProvider === 'openrouter' ? openRouter : openAI;
     
